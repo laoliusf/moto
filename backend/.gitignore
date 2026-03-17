@@ -7,7 +7,7 @@
 
 /node_modules
 /pptx
-
+/META-INF
 
 target/
 !.mvn/wrapper/maven-wrapper.jar
