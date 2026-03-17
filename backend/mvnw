@@ -1,0 +1,24 @@
+#!/bin/sh
+set -e
+MVNW_REPOURL=""
+WRAPPER_JAR=".mvn/wrapper/maven-wrapper.jar"
+WRAPPER_LAUNCHER=org.apache.maven.wrapper.MavenWrapperMain
+if [ -n "$MVNW_VERBOSE" ]; then
+  set -x
+fi
+if [ ! -f "$WRAPPER_JAR" ]; then
+  echo "- Downloading Maven Wrapper..."
+  if command -v curl >/dev/null; then
+    curl -fsLo "$WRAPPER_JAR" ${MVNW_REPOURL:-https://repo.maven.apache.org/maven2}/org/apache/maven/wrapper/maven-wrapper/3.2.0/maven-wrapper-3.2.0.jar
+  elif command -v wget >/dev/null; then
+    wget -qO "$WRAPPER_JAR" ${MVNW_REPOURL:-https://repo.maven.apache.org/maven2}/org/apache/maven/wrapper/maven-wrapper/3.2.0/maven-wrapper-3.2.0.jar
+  else
+    echo "Error: curl or wget required to download maven-wrapper.jar" >&2
+    exit 1
+  fi
+fi
+JAVA_EXE="$(dirname "$0")/jdk/bin/java"
+if [ ! -x "$JAVA_EXE" ]; then
+  JAVA_EXE="java"
+fi
+exec "$JAVA_EXE" -cp "$WRAPPER_JAR" $WRAPPER_LAUNCHER -Dmaven.multiModuleProjectDirectory="$(pwd -P)" "$@"

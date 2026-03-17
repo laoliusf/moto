@@ -1,0 +1,22 @@
+﻿server:
+  port: 12813
+spring:
+  application:
+    name: moto-app
+  datasource:
+    url: jdbc:sqlite:moto.db
+    driver-class-name: org.sqlite.JDBC
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+      encoding: UTF-8
+  jackson:
+    default-property-inclusion: non_null
+
+app:
+  jwt:
+    secret: ${APP_JWT_SECRET:}
+    expiration-days: 30
+  cors:
+    allowed-origins: http://localhost:12813
