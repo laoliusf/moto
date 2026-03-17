@@ -6,43 +6,134 @@
   <title>摩记应用</title>
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/charts.css/dist/charts.min.css">
+  <link rel="stylesheet" href="https://at.alicdn.com/t/c/font_4040092_1.css">
   <style>
-    :root { --radius:10px; --shadow:0 2px 6px rgba(0,0,0,0.08); }
-    body { font-family: "Segoe UI", sans-serif; margin:0; background:#f7f7f9; color:#222; }
-    header { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; background:#0f172a; color:#fff; gap:10px; }
-    header h1 { margin:0; font-size:18px; letter-spacing:0.5px; }
-    nav { display:flex; gap:8px; flex-wrap:wrap; }
-    nav a { color:#cbd5f5; text-decoration:none; padding:6px 10px; border-radius:8px; background:rgba(255,255,255,0.04); }
-    nav a.active { color:#fff; font-weight:600; background:#1d4ed8; }
-    main { padding:16px; max-width:1100px; margin:0 auto; }
-    .card-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; }
-    .card { background:#fff; border-radius:var(--radius); padding:14px; box-shadow:var(--shadow); }
-    .table-wrapper { width:100%; overflow-x:auto; }
-    .table { width:100%; border-collapse:collapse; background:#fff; border-radius:var(--radius); overflow:hidden; box-shadow:0 2px 6px rgba(0,0,0,0.06); min-width:720px; }
-    .table th, .table td { padding:10px 12px; border-bottom:1px solid #eef0f4; text-align:left; }
-    .table th { background:#f1f5f9; font-weight:600; }
-    form { display:grid; gap:8px; margin:12px 0; }
-    input, select, button, textarea { padding:10px; border:1px solid #d3d9e0; border-radius:8px; font-size:14px; }
-    button { background:#2563eb; color:#fff; border:none; cursor:pointer; }
-    button.secondary { background:#e2e8f0; color:#111827; }
-    .flex { display:flex; gap:8px; flex-wrap:wrap; }
-    .hidden { display:none; }
-    .toast { position:fixed; top:12px; right:12px; background:#0f172a; color:#fff; padding:10px 14px; border-radius:var(--radius); box-shadow:0 4px 12px rgba(0,0,0,0.2); }
-    @media (max-width:900px){
-      main { padding:12px; }
-      header { flex-direction:column; align-items:flex-start; }
-      .card-grid { grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); }
+    :root {
+      --color-bg:#0b1221;
+      --color-primary:#1A202C;
+      --color-accent:#38B2AC;
+      --color-warm:#ED8936;
+      --glass:rgba(255,255,255,0.06);
+      --border:rgba(255,255,255,0.08);
+      --text:#E2E8F0;
+      --muted:#94A3B8;
+      --radius:0.5rem;
+      --shadow:0 12px 30px rgba(0,0,0,0.28);
+      --blur:18px;
+      --touch:44px;
     }
+    * { box-sizing:border-box; }
+    html { font-size:16px; }
+    body {
+      font-family:"Segoe UI", "Microsoft YaHei", sans-serif;
+      margin:0; background:var(--color-bg); color:var(--text);
+      min-height:100vh; overflow-x:hidden; position:relative;
+    }
+    /* animated background */
+    body::before, body::after{
+      content:""; position:fixed; inset:-20%; filter:blur(80px);
+      background:conic-gradient(from 120deg, rgba(56,178,172,0.35), rgba(26,32,44,0.4), rgba(237,137,54,0.25));
+      animation:float 18s ease-in-out infinite alternate; z-index:-2;
+    }
+    body::after{
+      animation-duration:22s; animation-direction:alternate-reverse; opacity:0.7;
+    }
+    header {
+      position:sticky; top:0; z-index:10;
+      display:flex; justify-content:space-between; align-items:center;
+      padding:0.75rem 1rem; background:rgba(11,18,33,0.75);
+      backdrop-filter:blur(14px); border-bottom:1px solid var(--border);
+      transition:background 0.3s ease, box-shadow 0.3s ease;
+    }
+    header.scrolled { background:rgba(11,18,33,0.45); box-shadow:0 8px 24px rgba(0,0,0,0.25); }
+    header h1 { margin:0; font-size:1.1rem; letter-spacing:0.5px; display:flex; align-items:center; gap:0.35rem; }
+    header h1 .iconfont { color:var(--color-accent); }
+    nav { display:flex; gap:0.5rem; flex-wrap:wrap; }
+    .iconfont { font-size:1.3rem; line-height:1; }
+    nav a {
+      color:var(--muted); text-decoration:none; padding:0.55rem 0.9rem; border-radius:0.5rem;
+      display:flex; align-items:center; gap:0.35rem; min-height:var(--touch);
+      background:rgba(255,255,255,0.04); border:1px solid transparent;
+      transition:transform 0.2s ease, box-shadow 0.2s ease, color 0.2s, border-color 0.2s;
+    }
+    nav a:hover { color:#fff; transform:translateY(-2px) scale(1.01); box-shadow:var(--shadow); border-color:rgba(56,178,172,0.4); }
+    nav a.active { color:#fff; background:linear-gradient(135deg,#1A202C,#38B2AC); box-shadow:var(--shadow); }
+    main {
+      padding:1rem; max-width:1100px; margin:0 auto; position:relative;
+      animation:pageIn 360ms ease both;
+    }
+    .card-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(12rem,1fr)); gap:0.9rem; }
+    .card {
+      background:var(--glass); border:1px solid var(--border); border-radius:var(--radius);
+      padding:0.9rem; box-shadow:var(--shadow); backdrop-filter:blur(var(--blur));
+      position:relative; overflow:hidden;
+    }
+    .card::before{
+      content:""; position:absolute; inset:0; background:linear-gradient(135deg,rgba(56,178,172,0.08),rgba(237,137,54,0.06));
+      opacity:0; transition:opacity 0.3s ease;
+    }
+    .card:hover::before{ opacity:1; }
+    .card > * { position:relative; }
+    .table-wrapper { width:100%; overflow-x:auto; border-radius:var(--radius); box-shadow:var(--shadow); }
+    .table {
+      width:100%; border-collapse:collapse; background:rgba(17,24,39,0.75);
+      min-width:42rem; color:var(--text);
+    }
+    .table th, .table td { padding:0.75rem; border-bottom:1px solid var(--border); text-align:left; }
+    .table th { background:rgba(26,32,44,0.9); font-weight:600; }
+    .table tr:hover td { background:rgba(56,178,172,0.08); }
+    form { display:grid; gap:0.5rem; margin:0.75rem 0; }
+    input, select, button, textarea {
+      padding:0.7rem 0.85rem; border:1px solid var(--border);
+      border-radius:0.5rem; font-size:0.95rem; background:rgba(255,255,255,0.05); color:var(--text);
+      min-height:var(--touch);
+    }
+    input:focus, select:focus, textarea:focus { outline:2px solid rgba(56,178,172,0.6); border-color:transparent; }
+    button { background:linear-gradient(135deg,#38B2AC,#1A202C); color:#fff; cursor:pointer; box-shadow:var(--shadow); position:relative; overflow:hidden; }
+    button.secondary { background:rgba(255,255,255,0.1); color:var(--text); }
+    .btn-ghost { background:rgba(255,255,255,0.08); border:1px solid var(--border); }
+    .flex { display:flex; gap:0.5rem; flex-wrap:wrap; }
+    .hidden { display:none; }
+    .toast {
+      position:fixed; top:0.8rem; right:0.8rem; background:rgba(11,18,33,0.85);
+      color:#fff; padding:0.7rem 0.9rem; border-radius:var(--radius);
+      box-shadow:var(--shadow); border:1px solid var(--border); backdrop-filter:blur(var(--blur));
+    }
+    /* scrollbars */
+    ::-webkit-scrollbar { height:10px; width:10px; }
+    ::-webkit-scrollbar-track { background:rgba(255,255,255,0.05); border-radius:10px; }
+    ::-webkit-scrollbar-thumb { background:linear-gradient(180deg,#38B2AC,#1A202C); border-radius:10px; }
+    /* ripple */
+    .ripple { position:absolute; border-radius:50%; background:rgba(255,255,255,0.35); transform:scale(0); animation:ripple 0.6s ease-out; pointer-events:none; }
+    /* skeleton */
+    .skeleton { background:linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.18), rgba(255,255,255,0.08)); background-size:200% 100%; animation:shimmer 1.2s ease-in-out infinite; border-radius:0.4rem; }
+    .skeleton.card { height:6rem; }
+    .skeleton.table { height:12rem; }
+    .fade-slide { animation:pageIn 360ms ease both; }
+    /* animations */
+    @keyframes float { from { transform:translate3d(-4%, -2%,0);} to { transform:translate3d(6%,4%,0);} }
+    @keyframes pageIn { from { opacity:0; transform:translate3d(0,18px,0);} to { opacity:1; transform:translate3d(0,0,0);} }
+    @keyframes ripple { to { transform:scale(4); opacity:0; } }
+    @keyframes shimmer { 0%{ background-position:-200% 0;} 100%{ background-position:200% 0;} }
+    /* hover scaling */
+    .hover-rise:hover { transform:translateY(-2px) scale(1.01); box-shadow:var(--shadow); }
+    /* responsive */
     @media (max-width:768px){
+      html { font-size:15px; }
       nav { width:100%; }
-      nav a { padding:8px 10px; }
-      .flex { flex-direction:column; align-items:stretch; }
-      .flex input, .flex select, .flex button, .flex textarea { width:100%; }
-      .card { padding:12px; }
-      .table { min-width:620px; font-size:13px; }
-      .table th, .table td { padding:8px 10px; }
-      .toast { left:12px; right:12px; top:auto; bottom:12px; }
+      main { padding:0.85rem; }
+      header { flex-direction:column; align-items:flex-start; gap:0.5rem; }
+      .card { padding:0.8rem; }
+      .table { min-width:36rem; font-size:0.9rem; }
+      .toast { left:0.8rem; right:0.8rem; }
+    }
+    @media (max-width:375px){
+      html { font-size:14px; }
+      nav a { width:100%; justify-content:flex-start; }
+      .card-grid { grid-template-columns:repeat(auto-fit,minmax(10rem,1fr)); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
     }
   </style>
 </head>
@@ -53,7 +144,6 @@
   </header>
   <main id="app"></main>
   <div id="toast" class="toast hidden"></div>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <script src="api.js"></script>
   <script src="app.js"></script>
 </body>
