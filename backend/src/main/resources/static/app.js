@@ -107,10 +107,12 @@ async function renderFuel() {
       <button id="addFuelBtn">新增</button>
     </div>
     <div id="fuelForm" class="card hidden"></div>
-    <table class="table">
-      <thead><tr><th>日期</th><th>车辆</th><th>里程</th><th>升数</th><th>单价</th><th>总价</th><th>加满</th><th>操作</th></tr></thead>
-      <tbody id="fuelBody"></tbody>
-    </table>`;
+    <div class="table-wrapper">
+      <table class="table">
+        <thead><tr><th>日期</th><th>车辆</th><th>里程</th><th>升数</th><th>单价</th><th>总价</th><th>加满</th><th>操作</th></tr></thead>
+        <tbody id="fuelBody"></tbody>
+      </table>
+    </div>`;
   const body = document.getElementById("fuelBody");
   body.innerHTML = list.map(r => {
     const full = (r.fullTank !== undefined ? r.fullTank : r.isFullTank) ? "是" : "否";
@@ -183,7 +185,9 @@ async function renderMaintenance() {
       <h3>保养记录</h3><button id="addBtn">新增</button>
     </div>
     <div id="formBox" class="card hidden"></div>
-    <table class="table"><thead><tr><th>日期</th><th>车辆</th><th>项目</th><th>费用</th><th>里程</th><th>备注</th><th>操作</th></tr></thead><tbody id="body"></tbody></table>`;
+    <div class="table-wrapper">
+      <table class="table"><thead><tr><th>日期</th><th>车辆</th><th>项目</th><th>费用</th><th>里程</th><th>备注</th><th>操作</th></tr></thead><tbody id="body"></tbody></table>
+    </div>`;
   const body = document.getElementById("body");
   body.innerHTML = list.map(r=>`<tr><td>${r.date}</td><td>${vehicles.find(v=>v.id===r.vehicleId)?.name||"-"}</td><td>${r.title}</td><td>${r.cost}</td><td>${r.mileage}</td><td>${r.notes}</td><td><button class="secondary delete" data-id="${r.id}">删除</button></td></tr>`).join("");
   document.getElementById("addBtn").onclick = () => openMaintForm(null, vehicles);
@@ -230,7 +234,9 @@ async function renderVehicles(){
       <h3>车辆</h3><button id="addVehicle">新增</button>
     </div>
     <div id="vehicleForm" class="card hidden"></div>
-    <table class="table"><thead><tr><th>名称</th><th>品牌</th><th>型号</th><th>排量</th><th>购入日期</th><th>里程</th><th>备注</th><th>操作</th></tr></thead><tbody id="vehicleBody"></tbody></table>`;
+    <div class="table-wrapper">
+      <table class="table"><thead><tr><th>名称</th><th>品牌</th><th>型号</th><th>排量</th><th>购入日期</th><th>里程</th><th>备注</th><th>操作</th></tr></thead><tbody id="vehicleBody"></tbody></table>
+    </div>`;
   const body=document.getElementById("vehicleBody");
   body.innerHTML=list.map(v=>`<tr><td>${v.name}</td><td>${v.brand}</td><td>${v.model}</td><td>${v.displacement}</td><td>${v.purchaseDate}</td><td>${v.currentMileage}</td><td>${v.notes}</td><td><button class="secondary edit" data-id="${v.id}">编辑</button> <button class="secondary delete" data-id="${v.id}">删除</button></td></tr>`).join("");
   document.getElementById("addVehicle").onclick=()=>openVehicleForm();
