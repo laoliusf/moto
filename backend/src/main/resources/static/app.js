@@ -1,4 +1,4 @@
-const appEl = document.getElementById("app");
+﻿const appEl = document.getElementById("app");
 const navEl = document.getElementById("nav");
 const toastEl = document.getElementById("toast");
 const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -48,26 +48,28 @@ function triggerPageAnim() {
 
 function setNav(auth) {
   if (!auth) {
-    navEl.innerHTML = '<a href="#/login" class="active"><i class="iconfont icon-user"></i>登录</a>';
+    navEl.classList.add("hidden");
+    navEl.innerHTML = "";
     return;
   }
+  navEl.classList.remove("hidden");
   navEl.innerHTML = `
     <a href="#/dashboard"><i class="iconfont icon-dashboard"></i>仪表盘</a>
-    <a href="#/fuel"><i class="iconfont icon-oil"></i>加油记录</a>
-    <a href="#/maintenance"><i class="iconfont icon-maintenance"></i>保养记录</a>
+    <a href="#/fuel"><i class="iconfont icon-oil"></i>加油</a>
+    <a href="#/maintenance"><i class="iconfont icon-maintenance"></i>保养</a>
     <a href="#/vehicle"><i class="iconfont icon-car"></i>车辆</a>
-    <a href="#/logout"><i class="iconfont icon-logout"></i>退出</a>
+    <a href="#/me"><i class="iconfont icon-user"></i>我的</a>
   `;
   highlightNav();
 }
 
 function highlightNav() {
+  if (navEl.classList.contains("hidden")) return;
   const hash = location.hash || "#/dashboard";
   navEl.querySelectorAll("a").forEach(a => {
     a.classList.toggle("active", a.getAttribute("href") === hash);
   });
 }
-
 function headerScrollEffect() {
   const header = document.querySelector("header");
   if (!header) return;
@@ -86,6 +88,7 @@ function renderLogin() {
       <form id="loginForm">
         <input name="username" placeholder="用户名" required />
         <input name="password" type="password" placeholder="密码" required />
+        <div class="error-text hidden" id="loginError"></div>
         <div class="flex">
           <button type="submit">登录</button>
           <button type="button" id="registerBtn" class="secondary">注册</button>
@@ -93,14 +96,19 @@ function renderLogin() {
       </form>
     </div>`;
   const form = document.getElementById("loginForm");
+  const errorEl = document.getElementById("loginError");
   form.onsubmit = async (e) => {
     e.preventDefault();
     const data = Object.fromEntries(new FormData(form).entries());
     try {
       const res = await apiRequest("/api/auth/login", { method: "POST", body: JSON.stringify(data) });
       store.setToken(res.token);
+      errorEl.textContent = "";
+      errorEl.classList.add("hidden");
       location.hash = "#/dashboard";
     } catch (err) {
+      errorEl.textContent = err.message || "登录失败";
+      errorEl.classList.remove("hidden");
       showToast(err.message);
     }
   };
@@ -109,8 +117,14 @@ function renderLogin() {
     try {
       const res = await apiRequest("/api/auth/register", { method: "POST", body: JSON.stringify(data) });
       store.setToken(res.token);
+      errorEl.textContent = "";
+      errorEl.classList.add("hidden");
       location.hash = "#/dashboard";
-    } catch (err) { showToast(err.message); }
+    } catch (err) {
+      errorEl.textContent = err.message || "注册失败";
+      errorEl.classList.remove("hidden");
+      showToast(err.message);
+    }
   };
 }
 
@@ -220,7 +234,7 @@ async function renderFuel() {
     <td><button data-id="${r.id}" class="secondary edit">编辑</button> <button data-id="${r.id}" class="secondary delete">删除</button></td></tr>`;
   }).join("");
   document.querySelectorAll("button.delete").forEach(btn => btn.onclick = async () => {
-    if (!confirm("确认删除?")) return;
+    if (!confirm("确认删除？")) return;
     await apiRequest(`/api/fuel/${btn.dataset.id}`, { method:"DELETE" });
     showToast("已删除");
     renderFuel();
@@ -291,7 +305,7 @@ async function renderMaintenance() {
   body.innerHTML = list.map(r=>`<tr><td>${r.date}</td><td>${vehicles.find(v=>v.id===r.vehicleId)?.name||"-"}</td><td>${r.title}</td><td>${r.cost}</td><td>${r.mileage}</td><td>${r.notes}</td><td><button class="secondary delete" data-id="${r.id}">删除</button></td></tr>`).join("");
   document.getElementById("addBtn").onclick = () => openMaintForm(null, vehicles);
   document.querySelectorAll("button.delete").forEach(btn=>btn.onclick=async()=>{
-    if(!confirm("确认删除?")) return;
+    if(!confirm("确认删除？")) return;
     await apiRequest(`/api/maintenance/${btn.dataset.id}`, {method:"DELETE"});
     showToast("已删除");
     renderMaintenance();
@@ -343,7 +357,7 @@ async function renderVehicles(){
   document.getElementById("addVehicle").onclick=()=>openVehicleForm();
   document.querySelectorAll("button.edit").forEach(btn=>btn.onclick=()=>openVehicleForm(list.find(v=>v.id==btn.dataset.id)));
   document.querySelectorAll("button.delete").forEach(btn=>btn.onclick=async()=>{
-    if(!confirm("删除车辆会失败当存在记录时，确认继续?")) return;
+    if(!confirm("删除车辆会丢失其记录，确认继续？")) return;
     try{ await apiRequest(`/api/vehicle/${btn.dataset.id}`, {method:"DELETE"}); showToast("已删除"); renderVehicles(); }
     catch(err){ showToast(err.message); }
   });
@@ -376,6 +390,35 @@ function openVehicleForm(item){
   };
 }
 
+async function renderProfile(){
+  setNav(true);
+  triggerPageAnim();
+  appEl.innerHTML = `<div class="card skeleton table"></div>`;
+  try{
+    const [me, vehicles] = await Promise.all([
+      apiRequest("/api/auth/me"),
+      apiRequest("/api/vehicle")
+    ]);
+    const first = vehicles[0];
+    appEl.innerHTML = `
+      <div class="card hover-rise">
+        <h3>我的</h3>
+        <p>用户名：${me.username}</p>
+        <p>车辆数量：${vehicles.length}</p>
+        ${vehicles.length ? `<div class="card" style="margin-top:0.5rem;"><div style="font-weight:600;">首辆车辆</div><div>${first.name||"-"} ${first.brand||""} ${first.model||""}</div><div>当前里程：${first.currentMileage ?? "-"} km</div></div>` : `<p style="color:var(--muted);">暂无车辆，可前往“车辆”页添加。</p>`}
+        <div class="flex" style="margin-top:0.75rem;">
+          <button id="logoutBtn">退出登录</button>
+        </div>
+      </div>`;
+    document.getElementById("logoutBtn").onclick = () => {
+      store.setToken(null);
+      location.hash = "#/login";
+    };
+  }catch(err){
+    showToast(err.message);
+  }
+}
+
 async function handleRoute(){
   const hash=location.hash||"#/dashboard";
   if(!store.token && hash!=="#/login") { location.hash = "#/login"; return; }
@@ -390,6 +433,8 @@ async function handleRoute(){
       try{ await renderMaintenance(); }catch(err){ showToast(err.message);} break;
     case "#/vehicle":
       try{ await renderVehicles(); }catch(err){ showToast(err.message);} break;
+    case "#/me":
+      try{ await renderProfile(); }catch(err){ showToast(err.message);} break;
     case "#/logout":
       store.setToken(null); location.hash = "#/login"; break;
     default: location.hash = "#/dashboard";
@@ -399,3 +444,7 @@ async function handleRoute(){
 
 window.addEventListener("hashchange", handleRoute);
 window.addEventListener("load", handleRoute);
+
+
+
+

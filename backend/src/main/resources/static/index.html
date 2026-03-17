@@ -21,6 +21,7 @@
       --shadow:0 12px 30px rgba(0,0,0,0.28);
       --blur:18px;
       --touch:44px;
+      --nav-height:74px;
     }
     * { box-sizing:border-box; }
     html { font-size:16px; }
@@ -39,8 +40,8 @@
       animation-duration:22s; animation-direction:alternate-reverse; opacity:0.7;
     }
     header {
-      position:sticky; top:0; z-index:10;
-      display:flex; justify-content:space-between; align-items:center;
+      position:sticky; top:0; z-index:9;
+      display:flex; justify-content:center; align-items:center;
       padding:0.75rem 1rem; background:rgba(11,18,33,0.75);
       backdrop-filter:blur(14px); border-bottom:1px solid var(--border);
       transition:background 0.3s ease, box-shadow 0.3s ease;
@@ -59,7 +60,9 @@
     nav a:hover { color:#fff; transform:translateY(-2px) scale(1.01); box-shadow:var(--shadow); border-color:rgba(56,178,172,0.4); }
     nav a.active { color:#fff; background:linear-gradient(135deg,#1A202C,#38B2AC); box-shadow:var(--shadow); }
     main {
-      padding:1rem; max-width:1100px; margin:0 auto; position:relative;
+      padding:1rem;
+      padding-bottom:calc(1rem + var(--nav-height) + env(safe-area-inset-bottom));
+      max-width:1100px; margin:0 auto; position:relative;
       animation:pageIn 360ms ease both;
     }
     .card-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(12rem,1fr)); gap:0.9rem; }
@@ -93,12 +96,28 @@
     button.secondary { background:rgba(255,255,255,0.1); color:var(--text); }
     .btn-ghost { background:rgba(255,255,255,0.08); border:1px solid var(--border); }
     .flex { display:flex; gap:0.5rem; flex-wrap:wrap; }
+    .error-text { color:#f87171; font-size:0.9rem; }
     .hidden { display:none; }
     .toast {
       position:fixed; top:0.8rem; right:0.8rem; background:rgba(11,18,33,0.85);
       color:#fff; padding:0.7rem 0.9rem; border-radius:var(--radius);
       box-shadow:var(--shadow); border:1px solid var(--border); backdrop-filter:blur(var(--blur));
     }
+    .bottom-nav {
+      position:fixed; inset:auto 0 0 0; height:var(--nav-height);
+      padding:0.35rem 0.85rem calc(0.35rem + env(safe-area-inset-bottom));
+      display:flex; justify-content:space-around; align-items:center; gap:0.35rem;
+      background:rgba(11,18,33,0.9); backdrop-filter:blur(16px);
+      border-top:1px solid var(--border); box-shadow:0 -6px 18px rgba(0,0,0,0.25);
+      z-index:10;
+    }
+    .bottom-nav a {
+      flex:1; justify-content:center; flex-direction:column; gap:0.3rem; border-radius:0.75rem; padding:0.55rem;
+      background:rgba(255,255,255,0.03); text-align:center; font-size:0.85rem;
+    }
+    .bottom-nav a:hover { transform:none; }
+    .bottom-nav .iconfont { font-size:1.4rem; }
+    .bottom-nav a.active { transform:none; }
     /* scrollbars */
     ::-webkit-scrollbar { height:10px; width:10px; }
     ::-webkit-scrollbar-track { background:rgba(255,255,255,0.05); border-radius:10px; }
@@ -140,9 +159,9 @@
 <body>
   <header>
     <h1>摩记</h1>
-    <nav id="nav"></nav>
   </header>
   <main id="app"></main>
+  <nav id="nav" class="bottom-nav hidden"></nav>
   <div id="toast" class="toast hidden"></div>
   <script src="api.js"></script>
   <script src="app.js"></script>
