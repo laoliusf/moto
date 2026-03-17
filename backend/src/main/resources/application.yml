@@ -16,7 +16,7 @@ spring:
 
 app:
   jwt:
-    secret: ${APP_JWT_SECRET:}
+    secret: ThisIsASuperStrongJwtSecretKey_ChangeMe_1234567890
     expiration-days: 30
   cors:
     allowed-origins: http://localhost:12813
