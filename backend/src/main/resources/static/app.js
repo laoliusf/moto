@@ -1,6 +1,23 @@
-﻿const appEl = document.getElementById("app");
+const appEl = document.getElementById("app");
 const navEl = document.getElementById("nav");
 const toastEl = document.getElementById("toast");
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let chartPromise = null;
+
+function loadChartLib() {
+  if (window.Chart) return Promise.resolve(window.Chart);
+  if (!chartPromise) {
+    chartPromise = new Promise((resolve, reject) => {
+      const s = document.createElement("script");
+      s.src = "https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js";
+      s.defer = true;
+      s.onload = () => resolve(window.Chart);
+      s.onerror = reject;
+      document.body.appendChild(s);
+    });
+  }
+  return chartPromise;
+}
 
 function showToast(msg) {
   toastEl.textContent = msg;
@@ -8,24 +25,63 @@ function showToast(msg) {
   setTimeout(() => toastEl.classList.add("hidden"), 3000);
 }
 
+function addRipple(e) {
+  const target = e.target.closest("button, a");
+  if (!target) return;
+  const rect = target.getBoundingClientRect();
+  const ripple = document.createElement("span");
+  ripple.className = "ripple";
+  const size = Math.max(rect.width, rect.height);
+  ripple.style.width = ripple.style.height = `${size}px`;
+  ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
+  ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
+  target.appendChild(ripple);
+  ripple.addEventListener("animationend", () => ripple.remove());
+}
+document.addEventListener("click", addRipple, { passive: true });
+
+function triggerPageAnim() {
+  appEl.classList.remove("fade-slide");
+  void appEl.offsetWidth;
+  appEl.classList.add("fade-slide");
+}
+
 function setNav(auth) {
   if (!auth) {
-    navEl.innerHTML = '<a href="#/login" class="active">登录</a>';
+    navEl.innerHTML = '<a href="#/login" class="active"><i class="iconfont icon-user"></i>登录</a>';
     return;
   }
   navEl.innerHTML = `
-    <a href="#/dashboard">仪表盘</a>
-    <a href="#/fuel">加油记录</a>
-    <a href="#/maintenance">保养记录</a>
-    <a href="#/vehicle">车辆</a>
-    <a href="#/logout">退出</a>
+    <a href="#/dashboard"><i class="iconfont icon-dashboard"></i>仪表盘</a>
+    <a href="#/fuel"><i class="iconfont icon-oil"></i>加油记录</a>
+    <a href="#/maintenance"><i class="iconfont icon-maintenance"></i>保养记录</a>
+    <a href="#/vehicle"><i class="iconfont icon-car"></i>车辆</a>
+    <a href="#/logout"><i class="iconfont icon-logout"></i>退出</a>
   `;
+  highlightNav();
 }
+
+function highlightNav() {
+  const hash = location.hash || "#/dashboard";
+  navEl.querySelectorAll("a").forEach(a => {
+    a.classList.toggle("active", a.getAttribute("href") === hash);
+  });
+}
+
+function headerScrollEffect() {
+  const header = document.querySelector("header");
+  if (!header) return;
+  const toggle = () => header.classList.toggle("scrolled", window.scrollY > 12);
+  toggle();
+  window.addEventListener("scroll", toggle, { passive: true });
+}
+headerScrollEffect();
 
 function renderLogin() {
   setNav(false);
+  triggerPageAnim();
   appEl.innerHTML = `
-    <div class="card" style="max-width:360px; margin:30px auto;">
+    <div class="card hover-rise" style="max-width:22rem; margin:2rem auto;">
       <h3>登录 / 注册</h3>
       <form id="loginForm">
         <input name="username" placeholder="用户名" required />
@@ -67,38 +123,79 @@ async function fetchSummary() {
   return { summary, trend, breakdown };
 }
 
-function renderDashboard(data) {
+function dashboardSkeleton() {
+  appEl.innerHTML = `
+    <div class="card-grid">
+      <div class="card skeleton card"></div>
+      <div class="card skeleton card"></div>
+      <div class="card skeleton card"></div>
+      <div class="card skeleton card"></div>
+    </div>
+    <div class="card skeleton table" style="margin-top:0.75rem;"></div>
+    <div class="card skeleton table" style="margin-top:0.75rem;"></div>
+  `;
+}
+
+function animateCount(el, target) {
+  if (prefersReducedMotion) { el.textContent = target.toFixed ? target.toFixed(2) : target; return; }
+  const duration = 800;
+  const start = performance.now();
+  const initial = 0;
+  const step = (now) => {
+    const progress = Math.min((now - start) / duration, 1);
+    const value = initial + (target - initial) * progress;
+    el.textContent = value.toFixed(2);
+    if (progress < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+async function renderDashboard(data) {
   setNav(true);
+  triggerPageAnim();
   const { summary, trend, breakdown } = data;
   appEl.innerHTML = `
     <div class="card-grid">
-      <div class="card"><div>总费用</div><h2>¥${summary.totalCost.toFixed(2)}</h2></div>
-      <div class="card"><div>本月费用</div><h2>¥${summary.monthCost.toFixed(2)}</h2></div>
-      <div class="card"><div>平均油耗</div><h2>${summary.averageConsumption.toFixed(2)} L/100km</h2></div>
-      <div class="card"><div>平均单价</div><h2>¥${summary.averagePrice.toFixed(2)}</h2></div>
+      <div class="card hover-rise"><div>总费用</div><h2 id="count-total">0</h2></div>
+      <div class="card hover-rise"><div>本月费用</div><h2 id="count-month">0</h2></div>
+      <div class="card hover-rise"><div>平均油耗</div><h2 id="count-consume">0</h2></div>
+      <div class="card hover-rise"><div>平均单价</div><h2 id="count-price">0</h2></div>
     </div>
-    <div class="card" style="margin-top:12px;">
-      <canvas id="trendChart" height="120"></canvas>
+    <div class="card hover-rise" style="margin-top:0.75rem;">
+      <canvas id="trendChart" height="140"></canvas>
     </div>
-    <div class="card" style="margin-top:12px;">
-      <canvas id="pieChart" height="120"></canvas>
+    <div class="card hover-rise" style="margin-top:0.75rem;">
+      <canvas id="pieChart" height="140"></canvas>
     </div>
   `;
+  animateCount(document.getElementById("count-total"), summary.totalCost);
+  animateCount(document.getElementById("count-month"), summary.monthCost);
+  animateCount(document.getElementById("count-consume"), summary.averageConsumption);
+  animateCount(document.getElementById("count-price"), summary.averagePrice);
+
+  await loadChartLib();
   const labels = trend.map(t => t.date).reverse();
   const costData = trend.map(t => t.cost).reverse();
   const litersData = trend.map(t => t.liters).reverse();
   new Chart(document.getElementById("trendChart"), {
     type: "line",
-    data: { labels, datasets:[{ label:"费用", data:costData, borderColor:"#2563eb", fill:false }, { label:"升数", data:litersData, borderColor:"#f97316", fill:false }] },
+    data: { labels, datasets:[
+      { label:"费用", data:costData, borderColor:"#38B2AC", backgroundColor:"rgba(56,178,172,0.12)", fill:true, tension:0.35 },
+      { label:"升数", data:litersData, borderColor:"#ED8936", backgroundColor:"rgba(237,137,54,0.14)", fill:true, tension:0.35 }
+    ]},
+    options:{ plugins:{ legend:{ labels:{ color:"#E2E8F0" } } }, scales:{ x:{ ticks:{ color:"#94A3B8" } }, y:{ ticks:{ color:"#94A3B8" } } } }
   });
   new Chart(document.getElementById("pieChart"), {
     type: "pie",
-    data: { labels:["加油", "保养"], datasets:[{ data:[breakdown.fuelCost, breakdown.maintenanceCost], backgroundColor:["#2563eb", "#f59e0b"] }] }
+    data: { labels:["加油", "保养"], datasets:[{ data:[breakdown.fuelCost, breakdown.maintenanceCost], backgroundColor:["#38B2AC", "#ED8936"] }] },
+    options:{ plugins:{ legend:{ labels:{ color:"#E2E8F0" } } } }
   });
 }
 
 async function renderFuel() {
   setNav(true);
+  triggerPageAnim();
+  appEl.innerHTML = `<div class="card skeleton table" style="margin-top:0;"></div>`;
   const vehicles = await apiRequest("/api/vehicle");
   const list = await apiRequest("/api/fuel");
   appEl.innerHTML = `
@@ -148,7 +245,7 @@ function openFuelForm(item, vehicles) {
         <input name="totalCost" type="number" step="0.01" placeholder="总价" value="${item?item.totalCost:""}" required />
       </div>
       <div class="flex">
-        <label><input type="checkbox" name="isFullTank" ${item&&item.isFullTank?"checked":""}/> 加满</label>
+        <label style="display:flex;align-items:center;gap:0.35rem;"><input type="checkbox" name="isFullTank" ${item&&item.isFullTank?"checked":""}/> 加满</label>
         <input name="notes" placeholder="备注" value="${item?item.notes:""}" style="flex:1" />
       </div>
       <div class="flex">
@@ -178,6 +275,8 @@ function openFuelForm(item, vehicles) {
 
 async function renderMaintenance() {
   setNav(true);
+  triggerPageAnim();
+  appEl.innerHTML = `<div class="card skeleton table"></div>`;
   const vehicles = await apiRequest("/api/vehicle");
   const list = await apiRequest("/api/maintenance");
   appEl.innerHTML = `
@@ -228,6 +327,8 @@ function openMaintForm(item, vehicles){
 
 async function renderVehicles(){
   setNav(true);
+  triggerPageAnim();
+  appEl.innerHTML = `<div class="card skeleton table"></div>`;
   const list=await apiRequest("/api/vehicle");
   appEl.innerHTML=`
     <div class="flex" style="justify-content:space-between; align-items:center;">
@@ -278,10 +379,11 @@ function openVehicleForm(item){
 async function handleRoute(){
   const hash=location.hash||"#/dashboard";
   if(!store.token && hash!=="#/login") { location.hash = "#/login"; return; }
+  triggerPageAnim();
   switch(hash){
     case "#/login": renderLogin(); break;
     case "#/dashboard":
-      try{ const data=await fetchSummary(); renderDashboard(data);}catch(err){ showToast(err.message);} break;
+      try{ dashboardSkeleton(); const data=await fetchSummary(); renderDashboard(data);}catch(err){ showToast(err.message);} break;
     case "#/fuel":
       try{ await renderFuel(); }catch(err){ showToast(err.message);} break;
     case "#/maintenance":
@@ -292,6 +394,7 @@ async function handleRoute(){
       store.setToken(null); location.hash = "#/login"; break;
     default: location.hash = "#/dashboard";
   }
+  highlightNav();
 }
 
 window.addEventListener("hashchange", handleRoute);
