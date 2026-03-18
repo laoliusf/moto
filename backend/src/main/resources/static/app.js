@@ -46,6 +46,11 @@ function triggerPageAnim() {
   appEl.classList.add("fade-slide");
 }
 
+function renderDataRow(label, value) {
+  const safeValue = value === undefined || value === null || value === "" ? "-" : value;
+  return `<div class="data-row"><div class="data-label">${label}</div><div class="data-value">${safeValue}</div></div>`;
+}
+
 function setNav(auth) {
   if (!auth) {
     navEl.classList.add("hidden");
@@ -218,6 +223,7 @@ async function renderFuel() {
       <button id="addFuelBtn">新增</button>
     </div>
     <div id="fuelForm" class="card hidden"></div>
+    <div id="fuelCards" class="card-list"></div>
     <div class="table-wrapper">
       <table class="table">
         <thead><tr><th>日期</th><th>车辆</th><th>里程</th><th>升数</th><th>单价</th><th>总价</th><th>加满</th><th>操作</th></tr></thead>
@@ -225,6 +231,7 @@ async function renderFuel() {
       </table>
     </div>`;
   const body = document.getElementById("fuelBody");
+  const cardBox = document.getElementById("fuelCards");
   body.innerHTML = list.map(r => {
     const full = (r.fullTank !== undefined ? r.fullTank : r.isFullTank) ? "是" : "否";
     return `<tr>
@@ -232,6 +239,27 @@ async function renderFuel() {
     <td>${vehicles.find(v=>v.id===r.vehicleId)?.name||"-"}</td>
     <td>${r.mileage}</td><td>${r.liters}</td><td>${r.pricePerLiter}</td><td>${r.totalCost}</td><td>${full}</td>
     <td><button data-id="${r.id}" class="secondary edit">编辑</button> <button data-id="${r.id}" class="secondary delete">删除</button></td></tr>`;
+  }).join("");
+  cardBox.innerHTML = list.map(r => {
+    const full = (r.fullTank !== undefined ? r.fullTank : r.isFullTank) ? "是" : "否";
+    const vehicleName = vehicles.find(v => v.id === r.vehicleId)?.name || "-";
+    return `
+      <div class="data-card">
+        <div class="data-header">
+          <div class="data-title">${r.date || "-"}</div>
+          <div class="data-meta">${vehicleName}</div>
+        </div>
+        ${renderDataRow("里程", r.mileage)}
+        ${renderDataRow("升数", r.liters)}
+        ${renderDataRow("单价", r.pricePerLiter)}
+        ${renderDataRow("总价", r.totalCost)}
+        ${renderDataRow("加满", full)}
+        ${renderDataRow("备注", r.notes)}
+        <div class="data-actions">
+          <button data-id="${r.id}" class="secondary edit">编辑</button>
+          <button data-id="${r.id}" class="secondary delete">删除</button>
+        </div>
+      </div>`;
   }).join("");
   document.querySelectorAll("button.delete").forEach(btn => btn.onclick = async () => {
     if (!confirm("确认删除？")) return;
@@ -298,11 +326,30 @@ async function renderMaintenance() {
       <h3>保养记录</h3><button id="addBtn">新增</button>
     </div>
     <div id="formBox" class="card hidden"></div>
+    <div id="maintCards" class="card-list"></div>
     <div class="table-wrapper">
       <table class="table"><thead><tr><th>日期</th><th>车辆</th><th>项目</th><th>费用</th><th>里程</th><th>备注</th><th>操作</th></tr></thead><tbody id="body"></tbody></table>
     </div>`;
   const body = document.getElementById("body");
+  const cardBox = document.getElementById("maintCards");
   body.innerHTML = list.map(r=>`<tr><td>${r.date}</td><td>${vehicles.find(v=>v.id===r.vehicleId)?.name||"-"}</td><td>${r.title}</td><td>${r.cost}</td><td>${r.mileage}</td><td>${r.notes}</td><td><button class="secondary delete" data-id="${r.id}">删除</button></td></tr>`).join("");
+  cardBox.innerHTML = list.map(r => {
+    const vehicleName = vehicles.find(v => v.id === r.vehicleId)?.name || "-";
+    return `
+      <div class="data-card">
+        <div class="data-header">
+          <div class="data-title">${r.date || "-"}</div>
+          <div class="data-meta">${vehicleName}</div>
+        </div>
+        ${renderDataRow("项目", r.title)}
+        ${renderDataRow("费用", r.cost)}
+        ${renderDataRow("里程", r.mileage)}
+        ${renderDataRow("备注", r.notes)}
+        <div class="data-actions">
+          <button class="secondary delete" data-id="${r.id}">删除</button>
+        </div>
+      </div>`;
+  }).join("");
   document.getElementById("addBtn").onclick = () => openMaintForm(null, vehicles);
   document.querySelectorAll("button.delete").forEach(btn=>btn.onclick=async()=>{
     if(!confirm("确认删除？")) return;
@@ -349,11 +396,28 @@ async function renderVehicles(){
       <h3>车辆</h3><button id="addVehicle">新增</button>
     </div>
     <div id="vehicleForm" class="card hidden"></div>
+    <div id="vehicleCards" class="card-list"></div>
     <div class="table-wrapper">
       <table class="table"><thead><tr><th>名称</th><th>品牌</th><th>型号</th><th>排量</th><th>购入日期</th><th>里程</th><th>备注</th><th>操作</th></tr></thead><tbody id="vehicleBody"></tbody></table>
     </div>`;
   const body=document.getElementById("vehicleBody");
+  const cardBox = document.getElementById("vehicleCards");
   body.innerHTML=list.map(v=>`<tr><td>${v.name}</td><td>${v.brand}</td><td>${v.model}</td><td>${v.displacement}</td><td>${v.purchaseDate}</td><td>${v.currentMileage}</td><td>${v.notes}</td><td><button class="secondary edit" data-id="${v.id}">编辑</button> <button class="secondary delete" data-id="${v.id}">删除</button></td></tr>`).join("");
+  cardBox.innerHTML = list.map(v => `
+    <div class="data-card">
+      <div class="data-header">
+        <div class="data-title">${v.name || "-"}</div>
+        <div class="data-meta">${v.brand || "-"} ${v.model || ""}</div>
+      </div>
+      ${renderDataRow("排量", v.displacement)}
+      ${renderDataRow("购入日期", v.purchaseDate)}
+      ${renderDataRow("里程", v.currentMileage)}
+      ${renderDataRow("备注", v.notes)}
+      <div class="data-actions">
+        <button class="secondary edit" data-id="${v.id}">编辑</button>
+        <button class="secondary delete" data-id="${v.id}">删除</button>
+      </div>
+    </div>`).join("");
   document.getElementById("addVehicle").onclick=()=>openVehicleForm();
   document.querySelectorAll("button.edit").forEach(btn=>btn.onclick=()=>openVehicleForm(list.find(v=>v.id==btn.dataset.id)));
   document.querySelectorAll("button.delete").forEach(btn=>btn.onclick=async()=>{

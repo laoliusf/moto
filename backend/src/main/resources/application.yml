@@ -19,4 +19,4 @@ app:
     secret: ThisIsASuperStrongJwtSecretKey_ChangeMe_1234567890
     expiration-days: 30
   cors:
-    allowed-origins: http://localhost:12813
+    allowed-origins: http://localhost:12813,https://moto.iyyu.fun,https://moto.iyyu.fun:16888
