@@ -19,6 +19,7 @@ COPY --from=build /build/target/moto-app-0.0.1-SNAPSHOT.jar /app/app.jar
 COPY moto.db /app/moto.db
 COPY src/main/resources/schema.sql /app/schema.sql
 
-EXPOSE 12813
+# align container port with application.yml
+EXPOSE 18080
 
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

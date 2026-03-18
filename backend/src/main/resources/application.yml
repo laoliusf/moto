@@ -1,5 +1,5 @@
 ﻿server:
-  port: 12813
+  port: 18080
 spring:
   application:
     name: moto-app
