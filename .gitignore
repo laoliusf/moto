@@ -10,8 +10,8 @@
 /META-INF
 
 target/
-!.mvn/wrapper/maven-wrapper.jar
-
+backend/target/
+backend/.mvn/
 ######################################################################
 # IDE
 
@@ -52,3 +52,4 @@ nbdist/
 !*/build/*.xml
 /package.json
 /package-lock.json
+/moto.db
