@@ -3,6 +3,20 @@ const navEl = document.getElementById("nav");
 const toastEl = document.getElementById("toast");
 const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 let chartPromise = null;
+const maintenancePresetOptions = [
+  "机油",
+  "机滤",
+  "空滤",
+  "齿轮油",
+  "火花塞",
+  "刹车油",
+  "冷却液",
+  "电瓶",
+  "前轮胎",
+  "后轮胎",
+  "刹车片",
+  "传动皮带"
+];
 
 function loadChartLib() {
   if (window.Chart) return Promise.resolve(window.Chart);
@@ -49,6 +63,11 @@ function triggerPageAnim() {
 function renderDataRow(label, value) {
   const safeValue = value === undefined || value === null || value === "" ? "-" : value;
   return `<div class="data-row"><div class="data-label">${label}</div><div class="data-value">${safeValue}</div></div>`;
+}
+
+function formatNumber(value, digits = 2) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num.toFixed(digits) : (0).toFixed(digits);
 }
 
 function setNav(auth) {
@@ -175,9 +194,9 @@ async function renderDashboard(data) {
   const { summary, trend, breakdown } = data;
   appEl.innerHTML = `
     <div class="card-grid">
-      <div class="card hover-rise"><div>总费用</div><h2 id="count-total">0</h2></div>
-      <div class="card hover-rise"><div>本月费用</div><h2 id="count-month">0</h2></div>
-      <div class="card hover-rise"><div>本次油耗 (L/100km)</div><h2 id="count-consume">0</h2><div style="color:var(--muted);font-size:0.9rem;">历史均值: ${(summary.historicalAverageConsumption || 0).toFixed(2)}</div></div>
+      <div class="card hover-rise"><div>总费用</div><h2 id="count-total">0</h2><div style="color:var(--muted);font-size:0.9rem;">油费: ${formatNumber(summary.totalFuelCost)} | 保养: ${formatNumber(summary.totalMaintenanceCost)}</div></div>
+      <div class="card hover-rise"><div>本月费用</div><h2 id="count-month">0</h2><div style="color:var(--muted);font-size:0.9rem;">油费: ${formatNumber(summary.monthFuelCost)} | 保养: ${formatNumber(summary.monthMaintenanceCost)}</div></div>
+      <div class="card hover-rise"><div>本次油耗 (L/100km)</div><h2 id="count-consume">0</h2><div style="color:var(--muted);font-size:0.9rem;">历史均值: ${formatNumber(summary.historicalAverageConsumption)}</div></div>
       <div class="card hover-rise"><div>平均单价</div><h2 id="count-price">0</h2></div>
     </div>
     <div class="card hover-rise" style="margin-top:0.75rem;">
@@ -332,7 +351,7 @@ async function renderMaintenance() {
     </div>`;
   const body = document.getElementById("body");
   const cardBox = document.getElementById("maintCards");
-  body.innerHTML = list.map(r=>`<tr><td>${r.date}</td><td>${vehicles.find(v=>v.id===r.vehicleId)?.name||"-"}</td><td>${r.title}</td><td>${r.cost}</td><td>${r.mileage}</td><td>${r.notes}</td><td><button class="secondary delete" data-id="${r.id}">删除</button></td></tr>`).join("");
+  body.innerHTML = list.map(r=>`<tr><td>${r.date}</td><td>${vehicles.find(v=>v.id===r.vehicleId)?.name||"-"}</td><td>${r.title}</td><td>${r.cost}</td><td>${r.mileage}</td><td>${r.notes}</td><td><button class="secondary edit" data-id="${r.id}">编辑</button> <button class="secondary delete" data-id="${r.id}">删除</button></td></tr>`).join("");
   cardBox.innerHTML = list.map(r => {
     const vehicleName = vehicles.find(v => v.id === r.vehicleId)?.name || "-";
     return `
@@ -346,11 +365,13 @@ async function renderMaintenance() {
         ${renderDataRow("里程", r.mileage)}
         ${renderDataRow("备注", r.notes)}
         <div class="data-actions">
+          <button class="secondary edit" data-id="${r.id}">编辑</button>
           <button class="secondary delete" data-id="${r.id}">删除</button>
         </div>
       </div>`;
   }).join("");
   document.getElementById("addBtn").onclick = () => openMaintForm(null, vehicles);
+  document.querySelectorAll("button.edit").forEach(btn=>btn.onclick=()=>openMaintForm(list.find(r=>r.id==btn.dataset.id), vehicles));
   document.querySelectorAll("button.delete").forEach(btn=>btn.onclick=async()=>{
     if(!confirm("确认删除？")) return;
     await apiRequest(`/api/maintenance/${btn.dataset.id}`, {method:"DELETE"});
@@ -360,28 +381,82 @@ async function renderMaintenance() {
 }
 
 function openMaintForm(item, vehicles){
+  const parseMaintParts = (title) => (title || "")
+    .split(/[,+，、]/)
+    .map(part => part.trim())
+    .filter(Boolean);
+  const initialParts = parseMaintParts(item ? item.title : "");
+  const selectedPresets = new Set(initialParts.filter(part => maintenancePresetOptions.includes(part)));
+  const manualParts = initialParts.filter(part => !maintenancePresetOptions.includes(part));
   const box=document.getElementById("formBox");
   box.classList.remove("hidden");
   box.innerHTML=`<form id="maintForm">
     <div class="flex">
       <input name="date" type="date" value="${item?item.date:""}" required />
-      <input name="title" placeholder="项目" value="${item?item.title:""}" required />
-      <select name="vehicleId">${vehicles.map(v=>"<option value=\""+v.id+"\">"+v.name+"</option>").join("")}</select>
+      <input name="title" placeholder="项目，可手写" value="${manualParts.join("、")}" />
+      <select name="vehicleId">${vehicles.map(v=>"<option value=\""+v.id+"\" "+(item&&item.vehicleId===v.id?"selected":"")+">"+v.name+"</option>").join("")}</select>
+    </div>
+    <div style="display:grid; gap:0.5rem; position:relative;">
+      <details id="maintPresetPicker" style="position:relative;">
+        <summary id="maintPresetSummary" class="btn-ghost" style="list-style:none; display:flex; align-items:center; justify-content:space-between; gap:0.5rem; cursor:pointer; min-height:var(--touch); padding:0.7rem 0.85rem;">
+          <span>常用项目</span>
+          <span style="color:var(--muted); font-size:0.9rem;">已选 ${selectedPresets.size} 项</span>
+        </summary>
+        <div style="position:absolute; top:calc(100% + 0.35rem); left:0; right:0; z-index:20; padding:0.75rem; border-radius:0.75rem; background:rgba(11,18,33,0.96); border:1px solid var(--border); box-shadow:var(--shadow); display:grid; gap:0.5rem; max-height:16rem; overflow:auto;">
+          <div style="color:var(--muted); font-size:0.9rem;">多选后会和手写项目一起保存</div>
+          <div class="flex">
+            ${maintenancePresetOptions.map(option => `<label class="btn-ghost" style="display:flex;align-items:center;gap:0.35rem;cursor:pointer;"><input type="checkbox" name="presetTitle" value="${option}" ${selectedPresets.has(option) ? "checked" : ""}/> ${option}</label>`).join("")}
+          </div>
+        </div>
+      </details>
+      <div style="color:var(--muted); font-size:0.9rem;">支持手写，也可从下拉中多选常用项目</div>
     </div>
     <div class="flex">
-      <input name="cost" type="number" step="0.01" placeholder="费用" value="${item?item.cost:""}" required />
+      <div style="flex:1;">
+        <input name="cost" type="number" step="0.01" placeholder="费用" value="${item?item.cost:""}" required />
+      </div>
       <input name="mileage" type="number" placeholder="里程" value="${item?item.mileage:""}" required />
       <input name="notes" placeholder="备注" value="${item?item.notes:""}" />
     </div>
-    <div class="flex"><button type="submit">保存</button><button type="button" class="secondary" id="closeMaint">关闭</button></div>
+    <div class="flex"><button type="submit">${item?"更新":"保存"}</button><button type="button" class="secondary" id="closeMaint">关闭</button></div>
   </form>`;
   document.getElementById("closeMaint").onclick=()=>box.classList.add("hidden");
   const form=document.getElementById("maintForm");
+  const titleInput=form.elements.title;
+  const presetInputs=Array.from(form.querySelectorAll("input[name='presetTitle']"));
+  const presetSummary=document.getElementById("maintPresetSummary");
+  const presetPicker=document.getElementById("maintPresetPicker");
+  const syncMaintTitle = () => {
+    const manual = parseMaintParts(titleInput.value);
+    const presets = presetInputs.filter(input => input.checked).map(input => input.value);
+    const merged = [...presets, ...manual.filter(part => !presets.includes(part))];
+    titleInput.dataset.combinedTitle = merged.join("、");
+    if (presetSummary) {
+      presetSummary.innerHTML = `<span>常用项目</span><span style="color:var(--muted); font-size:0.9rem;">已选 ${presets.length} 项</span>`;
+    }
+  };
+  presetInputs.forEach(input => input.addEventListener("change", syncMaintTitle));
+  titleInput.addEventListener("input", syncMaintTitle);
+  syncMaintTitle();
+  form.addEventListener("click", (e) => e.stopPropagation());
+  document.addEventListener("click", () => {
+    if (presetPicker) presetPicker.open = false;
+  }, { once: true });
   form.onsubmit=async(e)=>{
     e.preventDefault();
     const data=Object.fromEntries(new FormData(form).entries());
+    data.title=(titleInput.dataset.combinedTitle || data.title || "").trim();
+    if(!data.title){
+      showToast("请至少选择或填写一个保养项目");
+      return;
+    }
     data.cost=Number(data.cost); data.mileage=Number(data.mileage); data.vehicleId=Number(data.vehicleId);
-    try{ await apiRequest("/api/maintenance", {method:"POST", body:JSON.stringify(data)}); showToast("已保存"); renderMaintenance(); }
+    try{
+      if(item) await apiRequest(`/api/maintenance/${item.id}`, {method:"PUT", body:JSON.stringify(data)});
+      else await apiRequest("/api/maintenance", {method:"POST", body:JSON.stringify(data)});
+      showToast("已保存");
+      renderMaintenance();
+    }
     catch(err){ showToast(err.message); }
   };
 }

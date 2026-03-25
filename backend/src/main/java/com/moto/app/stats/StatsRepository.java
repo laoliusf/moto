@@ -69,7 +69,18 @@ public class StatsRepository {
         Double monthFuel = jdbcTemplate.queryForObject("SELECT COALESCE(SUM(total_cost),0) FROM fuel_records WHERE user_id=? AND date >= ?", Double.class, userId, monthStart);
         Double monthMaint = jdbcTemplate.queryForObject("SELECT COALESCE(SUM(cost),0) FROM maintenance_records WHERE user_id=? AND date >= ?", Double.class, userId, monthStart);
         double monthCost = (monthFuel == null ? 0 : monthFuel) + (monthMaint == null ? 0 : monthMaint);
-        return new StatsSummary(totalCost, totalMileage, avgConsumption, avgPrice, monthCost, historicalAverageConsumption);
+        return new StatsSummary(
+                totalCost,
+                totalFuel == null ? 0 : totalFuel,
+                totalMaintenance == null ? 0 : totalMaintenance,
+                totalMileage,
+                avgConsumption,
+                avgPrice,
+                monthCost,
+                monthFuel == null ? 0 : monthFuel,
+                monthMaint == null ? 0 : monthMaint,
+                historicalAverageConsumption
+        );
     }
 
     public List<TrendPoint> fuelTrend(Long userId, int limit) {

@@ -57,6 +57,15 @@ public class MaintenanceRepository {
         return jdbcTemplate.query("SELECT * FROM maintenance_records WHERE id = ? AND user_id = ?", mapper, id, userId).stream().findFirst();
     }
 
+    public MaintenanceRecord update(Long id, Long userId, MaintenanceRecord record) {
+        int updated = jdbcTemplate.update(
+                "UPDATE maintenance_records SET vehicle_id=?, title=?, cost=?, mileage=?, date=?, notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?",
+                record.vehicleId(), record.title(), record.cost(), record.mileage(), record.date(), record.notes(), id, userId
+        );
+        if (updated == 0) throw ApiException.notFound("Maintenance record not found");
+        return new MaintenanceRecord(id, userId, record.vehicleId(), record.title(), record.cost(), record.mileage(), record.date(), record.notes());
+    }
+
     public void delete(Long id, Long userId) {
         int deleted = jdbcTemplate.update("DELETE FROM maintenance_records WHERE id=? AND user_id=?", id, userId);
         if (deleted == 0) throw ApiException.notFound("Maintenance record not found");

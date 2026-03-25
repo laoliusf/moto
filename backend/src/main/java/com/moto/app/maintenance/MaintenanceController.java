@@ -33,6 +33,14 @@ public class MaintenanceController {
         return ResponseEntity.ok(created);
     }
 
+    @PutMapping("/{id}")
+    public MaintenanceRecord update(@AuthenticationPrincipal AuthUser user,
+                                    @PathVariable Long id,
+                                    @Valid @RequestBody MaintenanceRequest request) {
+        repository.findById(id, user.id()).orElseThrow(() -> ApiException.notFound("Maintenance record not found"));
+        return repository.update(id, user.id(), request.toRecord(user.id()));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@AuthenticationPrincipal AuthUser user, @PathVariable Long id) {
         repository.findById(id, user.id()).orElseThrow(() -> ApiException.notFound("Maintenance record not found"));
