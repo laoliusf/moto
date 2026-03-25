@@ -1,5 +1,11 @@
 #!/bin/sh
 set -e
+
+EXTERNAL_MAVEN_HOME="/mnt/d/Maven/apache-maven-3.9.9"
+if [ -x "$EXTERNAL_MAVEN_HOME/bin/mvn" ]; then
+  exec "$EXTERNAL_MAVEN_HOME/bin/mvn" "$@"
+fi
+
 MVNW_REPOURL=""
 WRAPPER_JAR=".mvn/wrapper/maven-wrapper.jar"
 WRAPPER_LAUNCHER=org.apache.maven.wrapper.MavenWrapperMain

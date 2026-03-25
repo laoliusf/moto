@@ -177,7 +177,7 @@ async function renderDashboard(data) {
     <div class="card-grid">
       <div class="card hover-rise"><div>总费用</div><h2 id="count-total">0</h2></div>
       <div class="card hover-rise"><div>本月费用</div><h2 id="count-month">0</h2></div>
-      <div class="card hover-rise"><div>平均油耗</div><h2 id="count-consume">0</h2></div>
+      <div class="card hover-rise"><div>本次油耗 (L/100km)</div><h2 id="count-consume">0</h2><div style="color:var(--muted);font-size:0.9rem;">历史均值: ${(summary.historicalAverageConsumption || 0).toFixed(2)}</div></div>
       <div class="card hover-rise"><div>平均单价</div><h2 id="count-price">0</h2></div>
     </div>
     <div class="card hover-rise" style="margin-top:0.75rem;">

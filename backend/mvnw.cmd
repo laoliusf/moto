@@ -1,6 +1,12 @@
 @ECHO OFF
 setlocal
 
+set EXTERNAL_MAVEN_HOME=D:\Maven\apache-maven-3.9.9
+if exist "%EXTERNAL_MAVEN_HOME%\bin\mvn.cmd" (
+  call "%EXTERNAL_MAVEN_HOME%\bin\mvn.cmd" %*
+  exit /B %ERRORLEVEL%
+)
+
 set MAVEN_PROJECTBASEDIR=%~dp0
 if not defined MAVEN_PROJECTBASEDIR set MAVEN_PROJECTBASEDIR=%CD%
 set MAVEN_PROJECTBASEDIR=%MAVEN_PROJECTBASEDIR:~0,-1%
