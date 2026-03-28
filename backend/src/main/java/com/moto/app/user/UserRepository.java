@@ -36,4 +36,12 @@ public class UserRepository {
         Long id = jdbcTemplate.queryForObject("SELECT id FROM users WHERE username = ?", Long.class, username);
         return new User(id, username, passwordHash);
     }
+
+    public void updatePassword(Long id, String passwordHash) {
+        jdbcTemplate.update("UPDATE users SET password_hash = ? WHERE id = ?", passwordHash, id);
+    }
+
+    public void updatePasswordByUsername(String username, String passwordHash) {
+        jdbcTemplate.update("UPDATE users SET password_hash = ? WHERE username = ?", passwordHash, username);
+    }
 }

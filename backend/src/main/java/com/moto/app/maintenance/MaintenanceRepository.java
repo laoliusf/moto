@@ -28,6 +28,7 @@ public class MaintenanceRepository {
                     rs.getString("title"),
                     rs.getDouble("cost"),
                     rs.getInt("mileage"),
+                    rs.getObject("next_maintenance_mileage") == null ? 0 : rs.getInt("next_maintenance_mileage"),
                     rs.getString("date"),
                     rs.getString("notes")
             );
@@ -47,10 +48,10 @@ public class MaintenanceRepository {
     }
 
     public MaintenanceRecord create(Long userId, MaintenanceRecord record) {
-        jdbcTemplate.update("INSERT INTO maintenance_records(user_id, vehicle_id, title, cost, mileage, date, notes) VALUES(?,?,?,?,?,?,?)",
-                userId, record.vehicleId(), record.title(), record.cost(), record.mileage(), record.date(), record.notes());
+        jdbcTemplate.update("INSERT INTO maintenance_records(user_id, vehicle_id, title, cost, mileage, next_maintenance_mileage, date, notes) VALUES(?,?,?,?,?,?,?,?)",
+                userId, record.vehicleId(), record.title(), record.cost(), record.mileage(), record.nextMaintenanceMileage(), record.date(), record.notes());
         Long id = jdbcTemplate.queryForObject("SELECT last_insert_rowid()", Long.class);
-        return new MaintenanceRecord(id, userId, record.vehicleId(), record.title(), record.cost(), record.mileage(), record.date(), record.notes());
+        return new MaintenanceRecord(id, userId, record.vehicleId(), record.title(), record.cost(), record.mileage(), record.nextMaintenanceMileage(), record.date(), record.notes());
     }
 
     public Optional<MaintenanceRecord> findById(Long id, Long userId) {
@@ -59,11 +60,11 @@ public class MaintenanceRepository {
 
     public MaintenanceRecord update(Long id, Long userId, MaintenanceRecord record) {
         int updated = jdbcTemplate.update(
-                "UPDATE maintenance_records SET vehicle_id=?, title=?, cost=?, mileage=?, date=?, notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?",
-                record.vehicleId(), record.title(), record.cost(), record.mileage(), record.date(), record.notes(), id, userId
+                "UPDATE maintenance_records SET vehicle_id=?, title=?, cost=?, mileage=?, next_maintenance_mileage=?, date=?, notes=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND user_id=?",
+                record.vehicleId(), record.title(), record.cost(), record.mileage(), record.nextMaintenanceMileage(), record.date(), record.notes(), id, userId
         );
         if (updated == 0) throw ApiException.notFound("Maintenance record not found");
-        return new MaintenanceRecord(id, userId, record.vehicleId(), record.title(), record.cost(), record.mileage(), record.date(), record.notes());
+        return new MaintenanceRecord(id, userId, record.vehicleId(), record.title(), record.cost(), record.mileage(), record.nextMaintenanceMileage(), record.date(), record.notes());
     }
 
     public void delete(Long id, Long userId) {

@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS maintenance_records (
     title TEXT NOT NULL,
     cost REAL NOT NULL,
     mileage INTEGER NOT NULL,
+    next_maintenance_mileage INTEGER DEFAULT 0,
     date TEXT NOT NULL,
     notes TEXT DEFAULT '',
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,

@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MOTO Mecha Preview</title>
+  <style>
+    :root {
+      --bg: #060b14;
+      --panel: #101927;
+      --panel-2: #132235;
+      --line: #36d0ff;
+      --line-soft: #67f2d7;
+      --warn: #ff9b3d;
+      --warn-soft: #ffc65a;
+      --text: #edf4ff;
+      --muted: #8ea4bf;
+      --stroke: rgba(74, 112, 148, 0.7);
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(54, 208, 255, 0.12), transparent 30%),
+        radial-gradient(circle at top right, rgba(255, 155, 61, 0.12), transparent 32%),
+        linear-gradient(180deg, #07101c 0%, #03070d 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: radial-gradient(circle at center, black, transparent 85%);
+      pointer-events: none;
+    }
+
+    .wrap {
+      max-width: 1560px;
+      margin: 0 auto;
+      padding: 40px 24px 56px;
+    }
+
+    .intro {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .eyebrow {
+      color: var(--line);
+      letter-spacing: 0.2em;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    .intro h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 48px);
+      line-height: 1;
+    }
+
+    .intro p {
+      margin: 0;
+      max-width: 760px;
+      color: var(--muted);
+      line-height: 1.65;
+      font-size: 15px;
+    }
+
+    .board {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(280px, 1fr));
+      gap: 28px;
+      align-items: start;
+    }
+
+    .phone {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 390 / 844;
+      border-radius: 34px;
+      overflow: hidden;
+      background:
+        linear-gradient(180deg, rgba(13, 25, 40, 0.96), rgba(4, 10, 18, 0.98));
+      border: 1px solid rgba(54, 208, 255, 0.35);
+      box-shadow: var(--shadow);
+      padding: 18px 16px 18px;
+    }
+
+    .phone::before,
+    .phone::after {
+      content: "";
+      position: absolute;
+      inset: auto auto 0 -20%;
+      width: 160%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(54, 208, 255, 0.12), transparent);
+      transform: rotate(-12deg);
+      transform-origin: left center;
+    }
+
+    .phone::after {
+      bottom: auto;
+      top: 44%;
+      background: linear-gradient(90deg, transparent, rgba(255, 155, 61, 0.1), transparent);
+    }
+
+    .phone-label {
+      position: absolute;
+      top: 20px;
+      left: 18px;
+      z-index: 2;
+      color: rgba(255,255,255,0.72);
+      font-size: 12px;
+      letter-spacing: 0.03em;
+    }
+
+    .screen {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 14px;
+      height: 100%;
+      align-content: start;
+    }
+
+    .hero,
+    .card,
+    .floating-menu,
+    .garage-sheet {
+      position: relative;
+      background: linear-gradient(180deg, rgba(16, 25, 39, 0.98), rgba(10, 18, 28, 0.96));
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .hero::before,
+    .card::before,
+    .floating-menu::before,
+    .garage-sheet::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(135deg, rgba(54, 208, 255, 0.08), transparent 45%),
+        linear-gradient(315deg, rgba(255, 155, 61, 0.08), transparent 38%);
+      pointer-events: none;
+    }
+
+    .hero {
+      min-height: 126px;
+      padding: 18px 18px 16px;
+    }
+
+    .hero h2 {
+      margin: 18px 0 8px;
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .hero p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .chip-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 30px;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid currentColor;
+      font-size: 11px;
+      background: rgba(18, 31, 46, 0.8);
+    }
+
+    .cyan { color: var(--line); }
+    .mint { color: var(--line-soft); }
+    .orange { color: var(--warn); }
+    .yellow { color: var(--warn-soft); }
+
+    .vehicle-card {
+      min-height: 82px;
+      padding: 16px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .vehicle-card strong {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .vehicle-card span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .metric {
+      min-height: 110px;
+      padding: 14px;
+      border: 1px solid var(--stroke);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(19, 34, 53, 0.98), rgba(13, 24, 37, 0.95));
+    }
+
+    .metric h3 {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .metric strong {
+      display: block;
+      margin-bottom: 10px;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .metric small {
+      display: block;
+      color: var(--muted);
+      font-size: 10px;
+      line-height: 1.5;
+    }
+
+    .metric .line {
+      width: 48px;
+      height: 4px;
+      margin-top: 10px;
+      border-radius: 999px;
+    }
+
+    .chart-card {
+      min-height: 132px;
+      padding: 16px;
+    }
+
+    .chart-card h3,
+    .quick-note h3,
+    .list-card h3,
+    .garage-sheet h3 {
+      margin: 0 0 14px;
+      font-size: 14px;
+    }
+
+    .bars {
+      display: flex;
+      align-items: end;
+      gap: 14px;
+      height: 78px;
+      margin-top: 12px;
+    }
+
+    .bar {
+      width: 24px;
+      border-radius: 10px 10px 4px 4px;
+    }
+
+    .quick-note {
+      min-height: 84px;
+      padding: 16px;
+    }
+
+    .quick-note p,
+    .list-card p,
+    .garage-sheet p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .fab {
+      position: absolute;
+      right: 20px;
+      bottom: 112px;
+      width: 54px;
+      height: 54px;
+      border-radius: 18px;
+      border: 1px solid rgba(54, 208, 255, 0.6);
+      background: rgba(18, 33, 51, 0.95);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.34);
+    }
+
+    .fab::before,
+    .fab::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 20px;
+      height: 3px;
+      border-radius: 999px;
+      background: var(--line);
+      transform: translate(-50%, -50%);
+    }
+
+    .fab::after {
+      transform: translate(-50%, -50%) rotate(90deg);
+    }
+
+    .floating-menu {
+      position: absolute;
+      right: 18px;
+      bottom: 170px;
+      width: 222px;
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .floating-menu p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .menu-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .action-btn,
+    .mini-btn {
+      min-height: 38px;
+      border-radius: 14px;
+      border: 1px solid var(--stroke);
+      background: rgba(19, 34, 53, 0.94);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .action-btn.primary { background: var(--line); color: #05101a; border-color: transparent; }
+    .action-btn.warn { color: var(--warn); }
+    .action-btn.mint { color: var(--line-soft); }
+
+    .list-card {
+      min-height: 150px;
+      padding: 16px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .list-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .list-row strong {
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .bottom-nav {
+      position: absolute;
+      left: 16px;
+      right: 16px;
+      bottom: 18px;
+      height: 68px;
+      border-radius: 22px;
+      background: rgba(15, 24, 36, 0.95);
+      border: 1px solid rgba(74, 112, 148, 0.7);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      padding: 10px;
+    }
+
+    .nav-item {
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      font-size: 11px;
+      background: rgba(17, 26, 39, 0.84);
+      border: 1px solid rgba(74, 112, 148, 0.4);
+      text-align: center;
+      line-height: 1.3;
+    }
+
+    .nav-item.active {
+      color: var(--text);
+      background: rgba(21, 37, 56, 0.95);
+    }
+
+    .garage-sheet {
+      min-height: 134px;
+      padding: 16px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .sheet-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .sheet-actions .mini-btn {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .note-card {
+      min-height: 122px;
+      padding: 16px;
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(19, 34, 53, 0.96), rgba(11, 20, 31, 0.96));
+      border: 1px solid rgba(255, 155, 61, 0.55);
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 1360px) {
+      .board {
+        grid-template-columns: repeat(2, minmax(280px, 1fr));
+      }
+    }
+
+    @media (max-width: 760px) {
+      .wrap {
+        padding: 24px 14px 40px;
+      }
+
+      .board {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="intro">
+      <div class="eyebrow">MOTO // MECHA GARAGE</div>
+      <h1>机甲风格移动端改版效果稿</h1>
+      <p>这是一版不接业务逻辑的前端视觉预览，重点验证整体风格、总览页四宫格结构、悬浮快捷操作展开方式，以及多车辆时的默认车辆管理表现。</p>
+    </section>
+
+    <section class="board">
+      <article class="phone">
+        <div class="phone-label">总览 / 收起态</div>
+        <div class="screen">
+          <section class="hero">
+            <div class="chip-row">
+              <span class="chip cyan">MOTO // GARAGE</span>
+            </div>
+            <h2>总览控制台</h2>
+            <p>默认车辆驱动统计面板，快捷操作收纳为悬浮模块，减少首屏占位。</p>
+          </section>
+
+          <section class="vehicle-card card">
+            <strong>默认车辆 // YAMAHA NMAX</strong>
+            <span>当前里程 18,420 km · 总览数据已绑定默认车辆</span>
+            <div class="chip-row">
+              <span class="chip mint">DEFAULT</span>
+            </div>
+          </section>
+
+          <section class="metrics">
+            <div class="metric">
+              <h3>本月支出</h3>
+              <strong>¥ 486</strong>
+              <small>油费 ¥ 352</small>
+              <small>保养 ¥ 134</small>
+              <div class="line" style="background:#36d0ff"></div>
+            </div>
+            <div class="metric">
+              <h3>总支出</h3>
+              <strong>¥ 8,920</strong>
+              <small>油费 ¥ 6,540</small>
+              <small>保养 ¥ 2,380</small>
+              <div class="line" style="background:#ff9b3d"></div>
+            </div>
+            <div class="metric">
+              <h3>油耗</h3>
+              <strong>3.1 / 3.4</strong>
+              <small>本次 3.1 L/100km</small>
+              <small>平均 3.4 L/100km</small>
+              <div class="line" style="background:#67f2d7"></div>
+            </div>
+            <div class="metric">
+              <h3>平均油价</h3>
+              <strong>¥ 7.89</strong>
+              <small>默认车辆历史均价</small>
+              <small>切换默认车辆后同步刷新</small>
+              <div class="line" style="background:#ffc65a"></div>
+            </div>
+          </section>
+
+          <section class="chart-card card">
+            <h3>趋势概览</h3>
+            <div class="bars">
+              <div class="bar" style="height:48px;background:#36d0ff"></div>
+              <div class="bar" style="height:74px;background:#ff9b3d"></div>
+              <div class="bar" style="height:40px;background:#36d0ff"></div>
+              <div class="bar" style="height:92px;background:#ff9b3d"></div>
+              <div class="bar" style="height:62px;background:#36d0ff"></div>
+              <div class="bar" style="height:104px;background:#ff9b3d"></div>
+            </div>
+          </section>
+
+          <section class="quick-note card">
+            <h3>快捷操作</h3>
+            <p>收起后只保留一个悬浮入口，不再占用主页面主体位置。</p>
+          </section>
+        </div>
+
+        <div class="fab"></div>
+        <nav class="bottom-nav">
+          <div class="nav-item active">总览</div>
+          <div class="nav-item">补给</div>
+          <div class="nav-item">维保</div>
+          <div class="nav-item">车库</div>
+          <div class="nav-item">我的</div>
+        </nav>
+      </article>
+
+      <article class="phone">
+        <div class="phone-label">总览 / 展开态</div>
+        <div class="screen">
+          <section class="hero">
+            <div class="chip-row">
+              <span class="chip cyan">MOTO // GARAGE</span>
+            </div>
+            <h2>总览控制台</h2>
+            <p>悬浮按钮点击后展开快捷模块，用于高频补给、维保和车辆操作。</p>
+          </section>
+
+          <section class="vehicle-card card">
+            <strong>默认车辆 // YAMAHA NMAX</strong>
+            <span>当前里程 18,420 km · 最近补给 2026-03-27</span>
+            <div class="chip-row">
+              <span class="chip mint">DEFAULT</span>
+            </div>
+          </section>
+
+          <section class="metrics">
+            <div class="metric">
+              <h3>本月支出</h3>
+              <strong>¥ 486</strong>
+              <small>油费 ¥ 352</small>
+              <small>保养 ¥ 134</small>
+              <div class="line" style="background:#36d0ff"></div>
+            </div>
+            <div class="metric">
+              <h3>总支出</h3>
+              <strong>¥ 8,920</strong>
+              <small>油费 ¥ 6,540</small>
+              <small>保养 ¥ 2,380</small>
+              <div class="line" style="background:#ff9b3d"></div>
+            </div>
+            <div class="metric">
+              <h3>油耗</h3>
+              <strong>3.1 / 3.4</strong>
+              <small>本次 3.1 L/100km</small>
+              <small>平均 3.4 L/100km</small>
+              <div class="line" style="background:#67f2d7"></div>
+            </div>
+            <div class="metric">
+              <h3>平均油价</h3>
+              <strong>¥ 7.89</strong>
+              <small>默认车辆历史均价</small>
+              <small>切换默认车辆后同步刷新</small>
+              <div class="line" style="background:#ffc65a"></div>
+            </div>
+          </section>
+
+          <section class="chart-card card">
+            <h3>趋势概览</h3>
+            <div class="bars">
+              <div class="bar" style="height:48px;background:#36d0ff"></div>
+              <div class="bar" style="height:74px;background:#ff9b3d"></div>
+              <div class="bar" style="height:40px;background:#36d0ff"></div>
+              <div class="bar" style="height:92px;background:#ff9b3d"></div>
+              <div class="bar" style="height:62px;background:#36d0ff"></div>
+              <div class="bar" style="height:104px;background:#ff9b3d"></div>
+            </div>
+          </section>
+        </div>
+
+        <section class="floating-menu">
+          <h3>快捷操作模块</h3>
+          <p>点击悬浮按钮展开，二次点击收回。保留主页面完整度。</p>
+          <div class="menu-grid">
+            <div class="action-btn primary">补给</div>
+            <div class="action-btn warn">维保</div>
+            <div class="action-btn mint">车辆</div>
+            <div class="action-btn">统计</div>
+          </div>
+        </section>
+
+        <div class="fab" style="bottom:112px;">
+          <span style="display:none"></span>
+        </div>
+
+        <nav class="bottom-nav">
+          <div class="nav-item active">总览</div>
+          <div class="nav-item">补给</div>
+          <div class="nav-item">维保</div>
+          <div class="nav-item">车库</div>
+          <div class="nav-item">我的</div>
+        </nav>
+      </article>
+
+      <article class="phone">
+        <div class="phone-label">车库 / 默认车辆管理</div>
+        <div class="screen">
+          <section class="hero">
+            <div class="chip-row">
+              <span class="chip yellow">GARAGE CONTROL</span>
+            </div>
+            <h2>车库档案中心</h2>
+            <p>多车场景下，必须明确指定默认车辆，总览页统计随默认车辆联动变化。</p>
+          </section>
+
+          <section class="garage-sheet">
+            <h3>YAMAHA NMAX</h3>
+            <p>主车单元 / 当前里程 18,420 km / 已作为默认车辆</p>
+            <div class="chip-row">
+              <span class="chip mint">DEFAULT</span>
+            </div>
+            <div class="sheet-actions">
+              <div class="mini-btn" style="color:#36d0ff">编辑资料</div>
+              <div class="mini-btn" style="color:#67f2d7;border-color:rgba(103,242,215,0.65)">已设为默认车辆</div>
+            </div>
+          </section>
+
+          <section class="garage-sheet">
+            <h3>HONDA PCX</h3>
+            <p>备用单元 / 当前里程 9,860 km / 可切换为默认车辆</p>
+            <div class="sheet-actions">
+              <div class="mini-btn" style="color:#36d0ff">编辑资料</div>
+              <div class="mini-btn" style="color:#ff9b3d;border-color:rgba(255,155,61,0.7)">设为默认车辆</div>
+            </div>
+          </section>
+
+          <section class="note-card">
+            1. 总览页中的本月支出、总支出、油耗、平均油价都跟随默认车辆变化。<br>
+            2. 默认车辆切换后，首页最近记录和趋势图也同步刷新。<br>
+            3. 如果还没有设置默认车辆，应在总览页做显式提示。
+          </section>
+        </div>
+
+        <nav class="bottom-nav">
+          <div class="nav-item">总览</div>
+          <div class="nav-item">补给</div>
+          <div class="nav-item">维保</div>
+          <div class="nav-item active">车库</div>
+          <div class="nav-item">我的</div>
+        </nav>
+      </article>
+
+      <article class="phone">
+        <div class="phone-label">车库 / 切换默认确认</div>
+        <div class="screen">
+          <section class="hero">
+            <div class="chip-row">
+              <span class="chip orange">DEFAULT SWITCH</span>
+            </div>
+            <h2>切换默认车辆</h2>
+            <p>切换默认车辆时，需要把联动影响说清楚，避免用户误以为只是高亮变化。</p>
+          </section>
+
+          <section class="garage-sheet">
+            <h3>HONDA PCX</h3>
+            <p>切换后，总览页的统计和最近记录都切换为 HONDA PCX 的数据。</p>
+          </section>
+
+          <section class="garage-sheet" style="border-color:rgba(255,155,61,0.6)">
+            <h3>设为默认车辆？</h3>
+            <p>当前默认：YAMAHA NMAX。确认切换后，本月支出、总支出、油耗、平均油价与趋势图都会刷新。</p>
+            <div class="chip-row">
+              <span class="chip orange">统计页将刷新</span>
+              <span class="chip mint">当前默认: NMAX</span>
+            </div>
+            <div class="sheet-actions">
+              <div class="mini-btn" style="background:#ff9b3d;color:#061019;border-color:transparent">确认切换</div>
+              <div class="mini-btn" style="color:#36d0ff">取消</div>
+            </div>
+          </section>
+
+          <section class="quick-note card">
+            <h3>交互建议</h3>
+            <p>“设为默认车辆”建议直接放在车辆卡片上，并带一个轻量确认层，不建议埋得太深。</p>
+          </section>
+        </div>
+
+        <nav class="bottom-nav">
+          <div class="nav-item">总览</div>
+          <div class="nav-item">补给</div>
+          <div class="nav-item">维保</div>
+          <div class="nav-item active">车库</div>
+          <div class="nav-item">我的</div>
+        </nav>
+      </article>
+    </section>
+  </div>
+</body>
+</html>

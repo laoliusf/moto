@@ -48,14 +48,27 @@ public class MaintenanceController {
         return ResponseEntity.noContent().build();
     }
 
-    public record MaintenanceRequest(@NotBlank(message = "标题不能为空") String title,
-                                     @Min(value = 0, message = "费用需大于等于0") double cost,
-                                     @Min(value = 0, message = "里程需大于等于0") int mileage,
-                                     @NotBlank(message = "日期不能为空") String date,
-                                     String notes,
-                                     Long vehicleId) {
+    public record MaintenanceRequest(
+            @NotBlank(message = "标题不能为空") String title,
+            @Min(value = 0, message = "费用必须大于等于0") double cost,
+            @Min(value = 0, message = "里程必须大于等于0") int mileage,
+            @Min(value = 0, message = "下次保养里程必须大于等于0") int nextMaintenanceMileage,
+            @NotBlank(message = "日期不能为空") String date,
+            String notes,
+            Long vehicleId
+    ) {
         public MaintenanceRecord toRecord(Long userId) {
-            return new MaintenanceRecord(null, userId, vehicleId, title, cost, mileage, date, notes == null ? "" : notes);
+            return new MaintenanceRecord(
+                    null,
+                    userId,
+                    vehicleId,
+                    title,
+                    cost,
+                    mileage,
+                    nextMaintenanceMileage,
+                    date,
+                    notes == null ? "" : notes
+            );
         }
     }
 }

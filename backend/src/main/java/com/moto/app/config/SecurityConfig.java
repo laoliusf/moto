@@ -40,7 +40,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/register", "/api/auth/login").permitAll()
-                .requestMatchers(HttpMethod.GET, "/", "/index.html", "/static/**", "/*.js", "/*.css", "/favicon.ico", "/favicon.png").permitAll()
+                .requestMatchers(HttpMethod.GET, "/", "/index.html", "/static/**", "/vendor/**", "/*.js", "/*.css", "/favicon.ico", "/favicon.png").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
