@@ -1299,6 +1299,40 @@ function readFileAsDataUrl(file) {
   });
 }
 
+function loadImageElement(src) {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("图片解码失败"));
+    image.src = src;
+  });
+}
+
+async function prepareFuelOcrImage(file) {
+  const originalDataUrl = await readFileAsDataUrl(file);
+  if (!String(file?.type || "").startsWith("image/")) {
+    return originalDataUrl;
+  }
+  try {
+    const image = await loadImageElement(originalDataUrl);
+    const maxSide = 1600;
+    const scale = Math.min(1, maxSide / Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height, 1));
+    const width = Math.max(1, Math.round((image.naturalWidth || image.width) * scale));
+    const height = Math.max(1, Math.round((image.naturalHeight || image.height) * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { alpha: false });
+    if (!context) return originalDataUrl;
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, width, height);
+    context.drawImage(image, 0, 0, width, height);
+    return canvas.toDataURL("image/jpeg", 0.92);
+  } catch (_err) {
+    return originalDataUrl;
+  }
+}
+
 function renderFuelOcrMessage(container, message, tone = "info") {
   if (!container) return;
   if (!message) {
@@ -1334,7 +1368,7 @@ function openFuelModal(item = null) {
           <button class="btn btn-secondary" type="button" id="fuelOcrUploadBtn">选择图片</button>
         </div>
         <input id="fuelOcrInput" class="hidden" type="file" accept="image/*" />
-        <div class="inline-note">自动识别升数、单价和总价，回填后仍可手动修改。</div>
+        <div class="inline-note">拍照图片会先自动压缩并校正方向，再识别升数、单价和总价，回填后仍可手动修改。</div>
         <div id="fuelOcrStatus" class="inline-feedback hidden"></div>
       </div>
       <label class="field"><span>升数</span><input name="liters" type="number" step="0.01" value="${escapeHtml(item?.liters ?? "")}" required /></label>
@@ -1387,7 +1421,7 @@ function openFuelModal(item = null) {
       setOcrBusy(true);
       renderFuelOcrMessage(statusEl, "正在识别图片，请稍候...");
       try {
-        const imageBase64 = await readFileAsDataUrl(file);
+        const imageBase64 = await prepareFuelOcrImage(file);
         const result = await apiRequest("/api/fuel/ocr", {
           method: "POST",
           body: JSON.stringify({ imageBase64 })
