@@ -7,7 +7,15 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -15,9 +23,11 @@ import java.util.List;
 @RequestMapping("/api/fuel")
 public class FuelController {
     private final FuelRepository fuelRepository;
+    private final FuelOcrService fuelOcrService;
 
-    public FuelController(FuelRepository fuelRepository) {
+    public FuelController(FuelRepository fuelRepository, FuelOcrService fuelOcrService) {
         this.fuelRepository = fuelRepository;
+        this.fuelOcrService = fuelOcrService;
     }
 
     @GetMapping
@@ -35,6 +45,12 @@ public class FuelController {
         return ResponseEntity.ok(created);
     }
 
+    @PostMapping("/ocr")
+    public FuelOcrService.FuelOcrResult recognize(@AuthenticationPrincipal AuthUser user,
+                                                  @Valid @RequestBody FuelOcrRequest request) {
+        return fuelOcrService.recognize(request.imageBase64());
+    }
+
     @PutMapping("/{id}")
     public FuelRecord update(@AuthenticationPrincipal AuthUser user,
                              @PathVariable Long id,
@@ -50,7 +66,7 @@ public class FuelController {
     }
 
     public record FuelRequest(@NotBlank(message = "日期不能为空") String date,
-                              @Min(value = 0, message = "里程需大于等于0") int mileage,
+                              @Min(value = 0, message = "里程必须大于等于 0") int mileage,
                               double liters,
                               double pricePerLiter,
                               double totalCost,
@@ -60,5 +76,8 @@ public class FuelController {
         public FuelRecord toRecord(Long userId) {
             return new FuelRecord(null, userId, vehicleId, date, mileage, liters, pricePerLiter, totalCost, isFullTank, notes == null ? "" : notes);
         }
+    }
+
+    public record FuelOcrRequest(@NotBlank(message = "图片内容不能为空") String imageBase64) {
     }
 }

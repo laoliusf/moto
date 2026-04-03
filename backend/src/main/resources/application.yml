@@ -20,3 +20,5 @@ app:
     expiration-days: 30
   cors:
     allowed-origins: http://localhost:12813,http://127.0.0.1:8123,http://localhost:8123,https://moto.iyyu.fun,https://moto.iyyu.fun:16888
+  ocr:
+    base-url: ${APP_OCR_BASE_URL:http://127.0.0.1:1224}

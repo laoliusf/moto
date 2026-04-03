@@ -849,6 +849,19 @@
     .empty-box,
     .empty-text { color: var(--muted); font-size: 12px; line-height: 1.6; }
     .inline-error { color: var(--danger); font-size: 12px; }
+    .inline-note { color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .inline-feedback {
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--line);
+    }
+    .inline-feedback.warn { color: var(--warn); }
+    .inline-feedback.success { color: var(--line-soft); }
+    .ocr-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
 
     .modal-backdrop {
       position: fixed;
@@ -974,6 +987,7 @@
       .record-stack { grid-template-columns: 1fr; }
       .action-grid { grid-template-columns: 1fr; }
       .date-input { grid-template-columns: 1fr; }
+      .ocr-actions { grid-template-columns: 1fr; }
       .date-input input {
         border-right: 0;
         border-bottom: 1px solid rgba(54, 208, 255, 0.18);

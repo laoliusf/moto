@@ -1290,6 +1290,149 @@ function bindQuickActions() {
   });
 }
 
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("图片读取失败"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderFuelOcrMessage(container, message, tone = "info") {
+  if (!container) return;
+  if (!message) {
+    container.className = "inline-feedback hidden";
+    container.textContent = "";
+    return;
+  }
+  container.className = `inline-feedback ${tone}`;
+  container.textContent = message;
+}
+
+function formatFuelOcrValue(value) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num.toFixed(2) : "";
+}
+
+function applyFuelOcrResult(form, result) {
+  if (result?.liters != null) form.liters.value = formatFuelOcrValue(result.liters);
+  if (result?.pricePerLiter != null) form.pricePerLiter.value = formatFuelOcrValue(result.pricePerLiter);
+  if (result?.totalCost != null) form.totalCost.value = formatFuelOcrValue(result.totalCost);
+}
+
+function openFuelModal(item = null) {
+  const content = `
+    <form id="fuelForm" class="modal-form">
+      ${renderDateField("date", "日期", item?.date || "", true)}
+      <label class="field"><span>车辆</span><select name="vehicleId">${vehicleOptions(false)}</select></label>
+      <label class="field"><span>里程</span><input name="mileage" type="number" value="${escapeHtml(item?.mileage ?? "")}" required /></label>
+      <div class="field">
+        <span>图片识别</span>
+        <div class="ocr-actions">
+          <button class="btn btn-secondary" type="button" id="fuelOcrCameraBtn">拍照识别</button>
+          <button class="btn btn-secondary" type="button" id="fuelOcrUploadBtn">选择图片</button>
+        </div>
+        <input id="fuelOcrInput" class="hidden" type="file" accept="image/*" />
+        <div class="inline-note">自动识别升数、单价和总价，回填后仍可手动修改。</div>
+        <div id="fuelOcrStatus" class="inline-feedback hidden"></div>
+      </div>
+      <label class="field"><span>升数</span><input name="liters" type="number" step="0.01" value="${escapeHtml(item?.liters ?? "")}" required /></label>
+      <label class="field"><span>单价</span><input name="pricePerLiter" type="number" step="0.01" value="${escapeHtml(item?.pricePerLiter ?? "")}" required /></label>
+      <label class="field"><span>总价</span><input name="totalCost" type="number" step="0.01" value="${escapeHtml(item?.totalCost ?? "")}" required /></label>
+      <div class="field">
+        <span>加满状态</span>
+        <input name="isFullTank" type="hidden" value="${item?.isFullTank === false ? "false" : "true"}" />
+        <div class="status-toggle">
+          <button class="status-option" type="button" data-status-option="true">已加满</button>
+          <button class="status-option" type="button" data-status-option="false">未加满</button>
+        </div>
+      </div>
+      <label class="field"><span>备注</span><textarea name="notes">${escapeHtml(item?.notes || "")}</textarea></label>
+      <div class="modal-actions"><button class="btn btn-primary" type="submit">${item ? "更新补给" : "保存补给"}</button></div>
+    </form>
+  `;
+
+  mountModal(item ? "编辑补给任务" : "新增补给任务", content, () => {
+    const form = document.getElementById("fuelForm");
+    const fileInput = document.getElementById("fuelOcrInput");
+    const statusEl = document.getElementById("fuelOcrStatus");
+    const cameraBtn = document.getElementById("fuelOcrCameraBtn");
+    const uploadBtn = document.getElementById("fuelOcrUploadBtn");
+    bindDatePickerButtons(form);
+    form.vehicleId.value = String(item?.vehicleId || ensureDefaultVehicle()?.id || state.vehicles[0]?.id || "");
+    bindFuelStatusToggle(form, item?.isFullTank !== false);
+
+    const setOcrBusy = busy => {
+      cameraBtn.disabled = busy;
+      uploadBtn.disabled = busy;
+      cameraBtn.textContent = busy ? "识别中..." : "拍照识别";
+      uploadBtn.textContent = busy ? "识别中..." : "选择图片";
+    };
+
+    const triggerImagePick = useCamera => {
+      if (useCamera) {
+        fileInput.setAttribute("capture", "environment");
+      } else {
+        fileInput.removeAttribute("capture");
+      }
+      fileInput.click();
+    };
+
+    cameraBtn.onclick = () => triggerImagePick(true);
+    uploadBtn.onclick = () => triggerImagePick(false);
+    fileInput.onchange = async event => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+      setOcrBusy(true);
+      renderFuelOcrMessage(statusEl, "正在识别图片，请稍候...");
+      try {
+        const imageBase64 = await readFileAsDataUrl(file);
+        const result = await apiRequest("/api/fuel/ocr", {
+          method: "POST",
+          body: JSON.stringify({ imageBase64 })
+        });
+        applyFuelOcrResult(form, result);
+        const hasWarnings = Array.isArray(result?.warnings) && result.warnings.length > 0;
+        renderFuelOcrMessage(
+          statusEl,
+          hasWarnings ? result.warnings.join("；") : "识别完成，已回填升数、单价和总价",
+          hasWarnings ? "warn" : "success"
+        );
+      } catch (err) {
+        renderFuelOcrMessage(statusEl, err.message || "图片识别失败，请稍后重试", "warn");
+      } finally {
+        fileInput.value = "";
+        setOcrBusy(false);
+      }
+    };
+
+    form.onsubmit = async event => {
+      event.preventDefault();
+      const payload = Object.fromEntries(new FormData(form).entries());
+      payload.vehicleId = Number(payload.vehicleId);
+      payload.mileage = Number(payload.mileage);
+      payload.liters = Number(payload.liters);
+      payload.pricePerLiter = Number(payload.pricePerLiter);
+      payload.totalCost = Number(payload.totalCost);
+      payload.isFullTank = payload.isFullTank === "true";
+      try {
+        if (item) {
+          await apiRequest(`/api/fuel/${item.id}`, { method: "PUT", body: JSON.stringify(payload) });
+        } else {
+          await apiRequest("/api/fuel", { method: "POST", body: JSON.stringify(payload) });
+        }
+        await refreshDataLists();
+        closeModal();
+        showToast(item ? "补给记录已更新" : "补给记录已保存");
+        renderCurrentRoute();
+      } catch (err) {
+        showToast(err.message || "保存失败", "warn");
+      }
+    };
+  });
+}
+
 async function handleRoute() {
   const hash = location.hash || "#/dashboard";
   state.route = hash;
